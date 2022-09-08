@@ -127,16 +127,16 @@ PlayMode::PlayMode() {
 	//used for the player:
 	ppu.palette_table[7] = {
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0xff, 0xff, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+		glm::u8vec4(0x1d, 0x35, 0x57, 0xff),
+		glm::u8vec4(0x45, 0x7b, 0x9d, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 	};
 
 	//used for ball:
 	ppu.palette_table[6] = {
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x88, 0x88, 0xff, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+		glm::u8vec4(0xe6, 0x39, 0x46, 0xff),
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
 	};
 
@@ -196,8 +196,18 @@ void PlayMode::update(float elapsed) {
 	// (will be used to set background color)
 	// background_fade += elapsed / 10.0f;
 	// background_fade -= std::floor(background_fade);
+	static float PlayerSpeed = 60.0f;
 
-	constexpr float PlayerSpeed = 60.0f;
+	auto dist = [=](glm::vec2 a, glm::vec2 b) {
+		float x = b.x - a.x;
+		float y = b.y - a.y;
+		return sqrt(pow(x, 2) + pow(y, 2));
+	};
+
+	if (dist(player_at, ball_at) < 5) {
+		PlayerSpeed = 0.0f;
+	}
+
 	if (left.pressed) player_at.x -= PlayerSpeed * elapsed;
 	if (right.pressed) player_at.x += PlayerSpeed * elapsed;
 	if (down.pressed) player_at.y -= PlayerSpeed * elapsed;
@@ -218,12 +228,12 @@ void PlayMode::update(float elapsed) {
 	ball_at.y += BallSpeedY * elapsed;
 	if (ball_at.x >= PPU466::ScreenWidth-5)
 		BallSpeedX *= -1;
-	else if (ball_at.x <= 5)
+	else if (ball_at.x <= 2)
 		BallSpeedX *= -1;
 
 	if (ball_at.y >= PPU466::ScreenHeight-5)
 		BallSpeedY *= -1;
-	else if (ball_at.y <= 5) {
+	else if (ball_at.y <= 2) {
 		float x = player_at.x - ball_at.x;
 		float y = player_at.y - ball_at.y;
 		float root = sqrt(pow(x, 2) + pow(y, 2));
