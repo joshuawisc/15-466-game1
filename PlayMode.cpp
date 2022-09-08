@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <random>
+#include <algorithm>
 
 Load< TileAsset > player_tile(LoadTagDefault, [](){
 	TileAsset const *ret =  new TileAsset(data_path("player2.tile"));
@@ -36,6 +37,31 @@ Load< TileAsset > death_tile(LoadTagDefault, [](){
 
 Load< TileAsset > brick_tile(LoadTagDefault, [](){
 	TileAsset const *ret =  new TileAsset(data_path("brick.tile"));
+	return ret;
+});
+
+Load< TileAsset > l_tile(LoadTagDefault, [](){
+	TileAsset const *ret =  new TileAsset(data_path("l.tile"));
+	return ret;
+});
+
+Load< TileAsset > o_tile(LoadTagDefault, [](){
+	TileAsset const *ret =  new TileAsset(data_path("o.tile"));
+	return ret;
+});
+
+Load< TileAsset > s_tile(LoadTagDefault, [](){
+	TileAsset const *ret =  new TileAsset(data_path("s.tile"));
+	return ret;
+});
+
+Load< TileAsset > e_tile(LoadTagDefault, [](){
+	TileAsset const *ret =  new TileAsset(data_path("e.tile"));
+	return ret;
+});
+
+Load< TileAsset > r_tile(LoadTagDefault, [](){
+	TileAsset const *ret =  new TileAsset(data_path("r.tile"));
 	return ret;
 });
 
@@ -82,9 +108,9 @@ PlayMode::PlayMode() {
 	for (uint32_t x = 0; x < PPU466::BackgroundWidth; x++) {
 		for (uint32_t y = 0; y < PPU466::BackgroundHeight; y++) {
 			if (y >= 17 && y <= 19) {
-				ppu.background[x+PPU466::BackgroundWidth*y] = 1 | 256 ;
+				ppu.background[x+PPU466::BackgroundWidth*y] = 0 | 256 ;
 			} else {
-				ppu.background[x+PPU466::BackgroundWidth*y] = 0 ;
+				ppu.background[x+PPU466::BackgroundWidth*y] = 1 ;
 			}
 		}
 
@@ -111,8 +137,13 @@ PlayMode::PlayMode() {
 	// 	0b00000000,
 	// 	0b00000000,
 	// };
-	ppu.tile_table[0] = back_tile->tile;
-	ppu.tile_table[1] = brick_tile->tile;
+	ppu.tile_table[0] = brick_tile->tile;
+	ppu.tile_table[1] = back_tile->tile;
+	ppu.tile_table[2] = l_tile->tile;
+	ppu.tile_table[3] = o_tile->tile;
+	ppu.tile_table[4] = s_tile->tile;
+	ppu.tile_table[5] = e_tile->tile;
+	ppu.tile_table[6] = r_tile->tile;
 	ppu.tile_table[32] = player_tile->tile;
 	ppu.tile_table[33] = ball_tile->tile;
 
@@ -140,11 +171,19 @@ PlayMode::PlayMode() {
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 	};
 
-	//used for bricks:
+	//used for bricks / letter:
 	ppu.palette_table[1] = {
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
 		glm::u8vec4(0x48, 0x95, 0xef, 0xff),
 		glm::u8vec4(0x4c, 0xc9, 0xf0, 0xff),
+		glm::u8vec4(0xff, 0x00, 0x00, 0xff),
+	};
+
+	//used for spaces:
+	ppu.palette_table[2] = {
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+		glm::u8vec4(0x48, 0x95, 0xef, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 	};
 
@@ -163,6 +202,12 @@ PlayMode::PlayMode() {
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
 	};
+
+	player_at.x = PPU466::ScreenWidth/2;
+	player_at.y = PPU466::ScreenHeight/2;
+
+	ball_at.x = PPU466::ScreenWidth/2;
+	ball_at.y = PPU466::ScreenHeight/10;
 
 }
 
@@ -205,11 +250,6 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		}
 	}
 
-	player_at.x = PPU466::ScreenWidth/2;
-	player_at.y = PPU466::ScreenHeight/2;
-
-	ball_at.x = PPU466::ScreenWidth/2;
-	ball_at.y = PPU466::ScreenHeight/10;
 
 	return false;
 }
@@ -222,6 +262,13 @@ void PlayMode::update(float elapsed) {
 	// background_fade -= std::floor(background_fade);
 	static float PlayerSpeed = 60.0f;
 
+	static float BallSpeed = 240.0f;
+
+	static float BallSpeedX = 60.0f;
+	static float BallSpeedY = 60.0f;
+
+	BallSpeed += 0.1;
+
 	auto dist = [=](glm::vec2 a, glm::vec2 b) {
 		float x = b.x - a.x;
 		float y = b.y - a.y;
@@ -229,9 +276,25 @@ void PlayMode::update(float elapsed) {
 	};
 
 	if (dist(player_at, ball_at) < 10) {
-		PlayerSpeed = 0.0f;
 		lost = true;
 		ppu.tile_table[32] = death_tile->tile;
+		BallSpeed = 60.0f;
+		int index = 0;
+
+		// Lose state background
+		for (uint32_t y = 0; y < PPU466::BackgroundHeight; y++) {
+			index = (y%2)*2;
+			for (uint32_t x = 0; x < PPU466::BackgroundWidth; x++) {
+			 	uint16_t new_val = (((index++)%6)+1) | 256;
+				if (new_val == 257)
+					new_val = 1 | 512;
+				ppu.background[x+PPU466::BackgroundWidth*y] = new_val;
+			}
+		}
+	}
+
+	if (lost) {
+		ppu.background_position.x += 1;
 	}
 
 	if (left.pressed) player_at.x -= PlayerSpeed * elapsed;
@@ -239,16 +302,18 @@ void PlayMode::update(float elapsed) {
 	if (down.pressed) player_at.y -= PlayerSpeed * elapsed;
 	if (up.pressed) player_at.y += PlayerSpeed * elapsed;
 
+	// Don't allow wrapping
+	player_at.x = std::max(player_at.x, 0.0f);
+	player_at.x = std::min(player_at.x, float(PPU466::ScreenWidth)-5);
+	player_at.y = std::max(player_at.y, 0.0f);
+	player_at.y = std::min(player_at.y, float(PPU466::ScreenHeight)-5);
+
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
 
-	constexpr float BallSpeed = 240.0f;
-
-	static float BallSpeedX = 60.0f;
-	static float BallSpeedY = 60.0f;
 
 	ball_at.x += BallSpeedX * elapsed;
 	ball_at.y += BallSpeedY * elapsed;
@@ -268,8 +333,8 @@ void PlayMode::update(float elapsed) {
 	// Check if brick hit
 	int brick_x = int(ball_at.x/8);
 	int brick_y = int(ball_at.y/8);
-	if (ppu.background[brick_x+PPU466::BackgroundWidth*brick_y] == (1 | 256)) {
-		ppu.background[brick_x+PPU466::BackgroundWidth*brick_y] = 0;
+	if (ppu.background[brick_x+PPU466::BackgroundWidth*brick_y] ==  (0 | 256 )) {
+		ppu.background[brick_x+PPU466::BackgroundWidth*brick_y] = 1;
 		BallSpeedY *= -1;
 	}
 

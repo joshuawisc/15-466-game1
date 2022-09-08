@@ -70,5 +70,11 @@ if __name__ == "__main__":
     assets.append('ball')
     assets.append('back')
     assets.append('brick')
+    assets.append('l')
+    assets.append('o')
+    assets.append('s')
+    assets.append('e')
+    assets.append('r')
+
     for asset in assets:
         process(asset)
