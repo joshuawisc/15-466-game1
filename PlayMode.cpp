@@ -254,7 +254,7 @@ void PlayMode::update(float elapsed) {
 	if (ball_at.y >= PPU466::ScreenHeight-5 || ball_at.y <= 2) {
 		float x = player_at.x - ball_at.x;
 		float y = player_at.y - ball_at.y;
-		float root = sqrt(pow(x, 2) + pow(y, 2));
+		float root = float(sqrt(pow(x, 2) + pow(y, 2)));
 		BallSpeedX = (x/root) * BallSpeed;
 		BallSpeedY = (y/root) * BallSpeed;
 	}
