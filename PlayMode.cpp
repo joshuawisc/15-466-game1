@@ -15,6 +15,7 @@
 #include <random>
 #include <algorithm>
 
+// From discord comment: https://discord.com/channels/1013997989217435679/1013998948232470610/1015992136426070086
 Load< TileAsset > player_tile(LoadTagDefault, [](){
 	TileAsset const *ret =  new TileAsset(data_path("player2.tile"));
 	return ret;
