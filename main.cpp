@@ -13,8 +13,14 @@
 //for screenshots:
 #include "load_save_png.hpp"
 
+//for get path to data
+#include "data_path.hpp"
+
 //Includes for libSDL:
 #include <SDL.h>
+
+//
+#include "TileAsset.cpp"
 
 //...and for c++ standard library functions:
 #include <chrono>
@@ -22,6 +28,8 @@
 #include <stdexcept>
 #include <memory>
 #include <algorithm>
+#include <iostream>
+#include <fstream>
 
 #ifdef _WIN32
 extern "C" { uint32_t GetACP(); }
@@ -102,6 +110,11 @@ int main(int argc, char **argv) {
 	//Hide mouse cursor (note: showing can be useful for debugging):
 	//SDL_ShowCursor(SDL_DISABLE);
 
+	//TODO:
+	//Taken from Discord
+	//load the tile once opengl is initialized:
+
+
 	//------------ load assets --------------
 	call_load_functions();
 
@@ -177,7 +190,7 @@ int main(int argc, char **argv) {
 		}
 
 		{ //(3) call the current mode's "draw" function to produce output:
-		
+
 			Mode::current->draw(drawable_size);
 		}
 
