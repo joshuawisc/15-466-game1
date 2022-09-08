@@ -17,7 +17,7 @@ Assets:
 * Rick Mortem: ![link](processing/death.png)
 * Brick: ![link](processing/brick.png)
 * Ball: ![link](processing/ball.png)
-* End screen text: ![link](processing/l.png)![link](processing/o.png)![link](processing/s.png)![link](processing/e.png)![link](processing/r.png)
+* End screen letters: ![link](processing/l.png)![link](processing/o.png)![link](processing/s.png)![link](processing/e.png)![link](processing/r.png)
 
 
 
