@@ -31,7 +31,9 @@ def process(name):
         for j in range(img.height):
             color = pixels[i, j]
             index = 0
-            if color in color_to_idx:
+            if color == (255, 255, 255):
+                index = 0
+            elif color in color_to_idx:
                 index = color_to_idx[color]
             else:
                 index = num_colors
@@ -62,6 +64,9 @@ def process(name):
 
 if __name__ == "__main__":
     print("Processing...")
-    assets = ['player', 'ball']
+    assets = []
+    assets.append('player')
+    assets.append('ball')
+    assets.append('back')
     for asset in assets:
         process(asset)
