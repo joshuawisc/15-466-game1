@@ -65,8 +65,10 @@ def process(name):
 if __name__ == "__main__":
     print("Processing...")
     assets = []
-    assets.append('player')
+    assets.append('player2')
+    assets.append('death')
     assets.append('ball')
     assets.append('back')
+    assets.append('brick')
     for asset in assets:
         process(asset)

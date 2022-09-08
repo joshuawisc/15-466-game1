@@ -15,7 +15,7 @@
 #include <random>
 
 Load< TileAsset > player_tile(LoadTagDefault, [](){
-	TileAsset const *ret =  new TileAsset(data_path("player.tile"));
+	TileAsset const *ret =  new TileAsset(data_path("player2.tile"));
 	return ret;
 });
 
@@ -26,6 +26,16 @@ Load< TileAsset > ball_tile(LoadTagDefault, [](){
 
 Load< TileAsset > back_tile(LoadTagDefault, [](){
 	TileAsset const *ret =  new TileAsset(data_path("back.tile"));
+	return ret;
+});
+
+Load< TileAsset > death_tile(LoadTagDefault, [](){
+	TileAsset const *ret =  new TileAsset(data_path("death.tile"));
+	return ret;
+});
+
+Load< TileAsset > brick_tile(LoadTagDefault, [](){
+	TileAsset const *ret =  new TileAsset(data_path("brick.tile"));
 	return ret;
 });
 
@@ -71,8 +81,13 @@ PlayMode::PlayMode() {
 
 	for (uint32_t x = 0; x < PPU466::BackgroundWidth; x++) {
 		for (uint32_t y = 0; y < PPU466::BackgroundHeight; y++) {
-			ppu.background[x+PPU466::BackgroundWidth*y] = 0 ;
+			if (y >= 17 && y <= 19) {
+				ppu.background[x+PPU466::BackgroundWidth*y] = 1 | 256 ;
+			} else {
+				ppu.background[x+PPU466::BackgroundWidth*y] = 0 ;
+			}
 		}
+
 	}
 
 	//use sprite 32 as a "player":
@@ -97,6 +112,7 @@ PlayMode::PlayMode() {
 	// 	0b00000000,
 	// };
 	ppu.tile_table[0] = back_tile->tile;
+	ppu.tile_table[1] = brick_tile->tile;
 	ppu.tile_table[32] = player_tile->tile;
 	ppu.tile_table[33] = ball_tile->tile;
 
@@ -119,8 +135,16 @@ PlayMode::PlayMode() {
 	// used for the background:
 	ppu.palette_table[0] = {
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0xff, 0xf1, 0xfa, 0xee),
+		glm::u8vec4(0xf1, 0xfa, 0xee, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	};
+
+	//used for bricks:
+	ppu.palette_table[1] = {
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+		glm::u8vec4(0x48, 0x95, 0xef, 0xff),
+		glm::u8vec4(0x4c, 0xc9, 0xf0, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 	};
 
@@ -128,7 +152,7 @@ PlayMode::PlayMode() {
 	ppu.palette_table[7] = {
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
 		glm::u8vec4(0x1d, 0x35, 0x57, 0xff),
-		glm::u8vec4(0x45, 0x7b, 0x9d, 0xff),
+		glm::u8vec4(0xa8, 0xda, 0xdc, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 	};
 
@@ -181,11 +205,11 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		}
 	}
 
-	player_at.x = PPU466::BackgroundWidth*2;
-	player_at.y = PPU466::BackgroundHeight*2;
+	player_at.x = PPU466::ScreenWidth/2;
+	player_at.y = PPU466::ScreenHeight/2;
 
-	ball_at.x = PPU466::BackgroundWidth/2;
-	ball_at.y = PPU466::BackgroundWidth/10;
+	ball_at.x = PPU466::ScreenWidth/2;
+	ball_at.y = PPU466::ScreenHeight/10;
 
 	return false;
 }
@@ -204,8 +228,10 @@ void PlayMode::update(float elapsed) {
 		return sqrt(pow(x, 2) + pow(y, 2));
 	};
 
-	if (dist(player_at, ball_at) < 5) {
+	if (dist(player_at, ball_at) < 10) {
 		PlayerSpeed = 0.0f;
+		lost = true;
+		ppu.tile_table[32] = death_tile->tile;
 	}
 
 	if (left.pressed) player_at.x -= PlayerSpeed * elapsed;
@@ -219,7 +245,7 @@ void PlayMode::update(float elapsed) {
 	up.downs = 0;
 	down.downs = 0;
 
-	constexpr float BallSpeed = 120.0f;
+	constexpr float BallSpeed = 240.0f;
 
 	static float BallSpeedX = 60.0f;
 	static float BallSpeedY = 60.0f;
@@ -231,14 +257,20 @@ void PlayMode::update(float elapsed) {
 	else if (ball_at.x <= 2)
 		BallSpeedX *= -1;
 
-	if (ball_at.y >= PPU466::ScreenHeight-5)
-		BallSpeedY *= -1;
-	else if (ball_at.y <= 2) {
+	if (ball_at.y >= PPU466::ScreenHeight-5 || ball_at.y <= 2) {
 		float x = player_at.x - ball_at.x;
 		float y = player_at.y - ball_at.y;
 		float root = sqrt(pow(x, 2) + pow(y, 2));
 		BallSpeedX = (x/root) * BallSpeed;
 		BallSpeedY = (y/root) * BallSpeed;
+	}
+
+	// Check if brick hit
+	int brick_x = int(ball_at.x/8);
+	int brick_y = int(ball_at.y/8);
+	if (ppu.background[brick_x+PPU466::BackgroundWidth*brick_y] == (1 | 256)) {
+		ppu.background[brick_x+PPU466::BackgroundWidth*brick_y] = 0;
+		BallSpeedY *= -1;
 	}
 
 }

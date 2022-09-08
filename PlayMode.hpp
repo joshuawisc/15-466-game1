@@ -32,6 +32,9 @@ struct PlayMode : Mode {
 	//ball position:
 	glm::vec2 ball_at = glm::vec2(5.0f, 5.0f);
 
+	//game state:
+	bool lost = false;
+
 	//----- drawing handled by PPU466 -----
 
 	PPU466 ppu;
